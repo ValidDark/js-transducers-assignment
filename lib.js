@@ -26,17 +26,57 @@ function grossPerItemInState(state, startTime, endTime, customers) {
 
 return customers
             .filter( a => a.state === state)
-            .reduce( ( sum, next) => [...sum,...next.orders] , [] )
+            .reduce( flatMap(customer => customer.orders), [])
             .filter( a => a.timeStamp >= startTime && a.timeStamp <= endTime )
-            .reduce( (sum, next) => [...sum, ...next.items] ,[])
-            .reduce( (sum, next) => {
-                      if(sum[next.name] === undefined)
-                        {
-                          sum[next.name] = 0
-                        }
-                      sum[next.name] += next.price
-                      return sum
-                          } ,{})
+            .reduce( flatMap(order => order.items), [])
+            .reduce( groupBy(0 , (a,b) => a + b )( item => item.name , item => item.price ),{})
+}
+
+
+function groupBy(initV, combine){
+ return function (toKey, toValue){
+   return function (group, element) {
+     const key = toKey(element)
+     const value = toValue(element)
+
+     if(group[key] === undefined)
+       {
+         group[key] = initV
+       }
+       group[key] = combine(group[key], value)
+     return group
+   }
+  }
+ }
+
+
+ //OLD reduce
+ //.reduce( (sum, next) => {
+ //          if(sum[next.name] === undefined)
+ //            {
+ //              sum[next.name] = 0
+ //            }
+ //          sum[next.name] += next.price
+ //          return sum
+ //              } ,{})
+
+
+ // function groupBy(mapperA, mapperB, initV, typeFunc) {
+ //   return function (sum, element) {
+ //
+ //     if(sum[mapperA(element)] === undefined)
+ //       {
+ //         sum[mapperA(element)] = initV
+ //       }
+ //       sum[mapperA(element)] = typeFunc(sum[mapperA(element)], mapperB(element))
+ //     return sum
+ //   }
+ // }
+
+
+
+
+
 
             // - Old way instead of final .reduce() - //
             // .forEach( a => {
@@ -49,9 +89,35 @@ return customers
             //            )
 
 
-}
 
-//
+
+//const mapCombine =
+//    combiner => mapper => (sum, element) => combiner(sum, mapper(element))
+
+//  const mapCombine =
+//    function(combiner){
+//      return function(mapper){
+//        return function(sum, element){
+//          return combiner(sum, mapper(element))
+//        }
+//      }
+//    }
+
+
+const flatMap = (mapper) =>
+                (sum, element) =>
+                [...sum, ...mapper(element)]
+
+
+
+
+// function flatMap (mapper) {
+//   return function (orders, element) {
+//     return [...orders, ...mapper(element)]
+//   }
+// }
+
+
 
 
 module.exports = {
